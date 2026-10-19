@@ -202,7 +202,7 @@ footer{color:var(--muted);font-size:12.5px;margin-top:24px}
   <!-- 3. Call list -->
   <section class="card" aria-labelledby="h-list">
     <h2 id="h-list"><span class="step">3</span>Your call list</h2>
-    <p class="sub">Ranked by probability of accepting. Customers above the dashed line are inside your budget. Download the list and hand it to the call center.</p>
+    <p class="sub">Ranked by probability of accepting. “In budget” shows only the customers to call; in “All 1,000” a dashed line marks where your budget ends. Download the list and hand it to the call center.</p>
     <div class="toolbar">
       <div role="group" aria-label="Show">
         <button type="button" id="showIn" aria-pressed="true">In budget</button>
@@ -394,7 +394,7 @@ function setBudget(n){
   $('kExp').textContent = exp.toFixed(0);
   $('kAct').textContent = actual;
   $('kActNote').textContent = `of ${totalAcc} buyers in the list (${pct(actual/totalAcc)})`;
-  $('kRand').textContent = rand.toFixed(0);
+  $('kRand').textContent = rand < 100 ? rand.toFixed(1) : rand.toFixed(0);
   $('kRate').textContent = pct(actual/n);
   $('kLift').textContent = `${(actual/n/BASE).toFixed(1)}× the 10.5% random rate`;
 
@@ -522,7 +522,8 @@ function writeForm(o){ FIELDS.forEach(f => { const el = $('f-'+f); if (el.type==
 function scoreForm(){
   if (!MODEL) return;
   const row = readForm();
-  for (const f of ['Age','Income','CCAvg','Mortgage']) if (!isFinite(row[f]) || row[f] < 0){ $('oProb').textContent='–'; $('oVerdict').textContent='Please enter a valid '+f+'.'; return; }
+  const bad = ['Age','Income','CCAvg','Mortgage'].find(f => $('f-'+f).value === '' || !isFinite(row[f]) || row[f] < 0) || (row.Age < 18 || row.Age > 100 ? 'Age (18–100)' : null);
+  if (bad){ $('oProb').textContent='–'; $('oMeter').style.width='0'; $('oRank').textContent=''; $('oWhy').innerHTML=''; $('oVerdict').textContent='Please enter a valid '+bad+'.'; return; }
   const p = predict(row);
   const rank = RANKED.filter(r => r.p > p).length + 1;
   const [t] = tier(p);
