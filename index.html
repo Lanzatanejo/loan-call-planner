@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loan Call Planner</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22%232a78d6%22/%3E%3Cpath d=%22M7 23l6-7 5 4 7-10%22 stroke=%22white%22 stroke-width=%223%22 fill=%22none%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E">
+<meta name="description" content="Plan a personal-loan call campaign: choose the call budget, get the ranked call list, and score any single customer with the bank's neural network.">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f6f5f2; --surface:#fcfcfb; --surface-2:#f0efeb; --line:#e3e1db;
+  --text:#0b0b0b; --text-2:#52514e; --muted:#7a7873;
+  --accent:#2a78d6; --accent-ink:#1c5cab; --accent-soft:#e6f0fc;
+  --ref:#9a9890;
+  --good:#0f7b3f; --good-soft:#e3f4ea; --warn:#a36a00; --warn-soft:#fbf1dc; --bad:#b42318; --bad-soft:#fde8e6;
+  --tier-high:#1c5cab; --tier-med:#6da7ec; --tier-low:#cfcdc6;
+  --radius:12px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#121211; --surface:#1a1a19; --surface-2:#232321; --line:#33322f;
+    --text:#f0efec; --text-2:#c3c2b7; --muted:#9a988f;
+    --accent:#3987e5; --accent-ink:#86b6ef; --accent-soft:#1b2a3d;
+    --ref:#77756e;
+    --good:#4cc380; --good-soft:#15291d; --warn:#e0a63a; --warn-soft:#2d2412; --bad:#f07a6e; --bad-soft:#331a17;
+    --tier-high:#86b6ef; --tier-med:#3e6ea8; --tier-low:#45443f;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#121211; --surface:#1a1a19; --surface-2:#232321; --line:#33322f;
+  --text:#f0efec; --text-2:#c3c2b7; --muted:#9a988f;
+  --accent:#3987e5; --accent-ink:#86b6ef; --accent-soft:#1b2a3d;
+  --ref:#77756e;
+  --good:#4cc380; --good-soft:#15291d; --warn:#e0a63a; --warn-soft:#2d2412; --bad:#f07a6e; --bad-soft:#331a17;
+  --tier-high:#86b6ef; --tier-med:#3e6ea8; --tier-low:#45443f;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 16px 64px}
+header.top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:8px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+h1{font-size:28px;line-height:1.2;margin:4px 0 6px;letter-spacing:-.01em}
+h2{font-size:18px;margin:0 0 4px}
+.lede{color:var(--text-2);max-width:720px;margin:0}
+.who{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 22px}
+.pill{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:13px;color:var(--text-2)}
+.pill b{color:var(--text);font-weight:600}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:18px}
+.sub{color:var(--text-2);font-size:14px;margin:0 0 14px}
+.step{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:700;margin-right:8px;vertical-align:2px}
+/* budget */
+.budget{display:grid;grid-template-columns:1fr auto;gap:12px 20px;align-items:center}
+.budget input[type=range]{width:100%;accent-color:var(--accent)}
+.budget .num{display:flex;align-items:center;gap:8px}
+.budget .num input{width:84px}
+.quick{display:flex;gap:6px;flex-wrap:wrap;grid-column:1/-1}
+button,.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface-2);color:var(--text);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink)}
+input[type=number],select{font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 9px;width:100%}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
+.kpi{background:var(--surface-2);border-radius:10px;padding:14px}
+.kpi .label{font-size:12.5px;color:var(--text-2)}
+.kpi .val{font-size:28px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.15;margin-top:4px}
+.kpi .note{font-size:12.5px;color:var(--muted);margin-top:2px}
+.kpi.hero{background:var(--accent-soft)}
+.kpi.hero .val{color:var(--accent-ink)}
+.advice{margin-top:14px;padding:12px 14px;border-left:3px solid var(--accent);background:var(--surface-2);border-radius:0 8px 8px 0;font-size:14px;color:var(--text-2)}
+.advice b{color:var(--text)}
+/* chart */
+.chart-wrap{position:relative}
+svg.chart{width:100%;height:auto;display:block;overflow:visible}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--text-2);margin:4px 0 8px}
+.legend i{display:inline-block;width:18px;height:0;border-top:2px solid;vertical-align:4px;margin-right:6px}
+.tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12.5px;box-shadow:0 4px 16px rgba(0,0,0,.12);opacity:0;transition:opacity .1s;white-space:nowrap;z-index:5}
+.tip b{font-variant-numeric:tabular-nums}
+/* table */
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.toolbar .grow{flex:1}
+.toolbar input[type=search]{font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;width:180px}
+.tablebox{max-height:520px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{position:sticky;top:0;background:var(--surface-2);font-weight:600;color:var(--text-2);font-size:12.5px;z-index:1}
+td.r,th.r{text-align:right}
+tr.out td{color:var(--muted)}
+tr.cut td{border-top:2px dashed var(--accent)}
+.bar{display:inline-block;height:8px;border-radius:4px;background:var(--accent);vertical-align:1px;margin-right:8px}
+.tag{display:inline-block;font-size:11.5px;font-weight:600;border-radius:999px;padding:1px 8px}
+.t-high{background:var(--accent-soft);color:var(--accent-ink)}
+.t-med{background:var(--warn-soft);color:var(--warn)}
+.t-low{background:var(--surface-2);color:var(--muted)}
+.yes{color:var(--good);font-weight:600}
+.small{font-size:12.5px;color:var(--muted)}
+/* form */
+.formgrid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:22px}
+.fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.field label{display:block;font-size:12.5px;color:var(--text-2);margin-bottom:4px;font-weight:500}
+.field .hint{font-size:11.5px;color:var(--muted)}
+.toggles{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.toggle{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;cursor:pointer;background:var(--surface)}
+.toggle input{accent-color:var(--accent);width:16px;height:16px}
+.presets{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.result{background:var(--surface-2);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:10px}
+.result .prob{font-size:46px;font-weight:750;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+.meter{height:10px;background:var(--line);border-radius:5px;position:relative;overflow:hidden}
+.meter span{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:5px}
+.verdict{font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px}
+.verdict .dot{width:10px;height:10px;border-radius:50%}
+.why{font-size:13.5px;color:var(--text-2);margin:0;padding-left:18px}
+.why li{margin:3px 0}
+/* check */
+.check{display:flex;gap:14px;align-items:flex-start}
+.badge{font-weight:700;border-radius:8px;padding:6px 12px;font-size:14px;white-space:nowrap}
+.badge.pass{background:var(--good-soft);color:var(--good)}
+.badge.fail{background:var(--bad-soft);color:var(--bad)}
+.badge.wait{background:var(--surface-2);color:var(--muted)}
+.checkgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}
+.checkgrid div{background:var(--surface-2);border-radius:8px;padding:10px 12px;font-size:12.5px;color:var(--text-2)}
+.checkgrid b{display:block;font-size:16px;color:var(--text);font-variant-numeric:tabular-nums}
+footer{color:var(--muted);font-size:12.5px;margin-top:24px}
+.err{background:var(--bad-soft);color:var(--bad);padding:12px 14px;border-radius:8px;margin-bottom:16px;display:none}
+@media (max-width:860px){
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .formgrid{grid-template-columns:1fr}
+  .checkgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:560px){
+  h1{font-size:23px}
+  .fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .toggles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .budget{grid-template-columns:1fr}
+  .card{padding:16px}
+  .kpi .val{font-size:23px}
+  .hide-sm{display:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Personal-loan campaign · Marketing team</div>
+      <h1>Loan Call Planner</h1>
+      <p class="lede">Decide <b>how many</b> deposit customers to call and <b>exactly which ones</b>. A neural network trained on the last campaign scores every customer's chance of accepting a personal loan; you call the highest-scoring ones first.</p>
+    </div>
+    <button id="themeBtn" type="button" aria-label="Toggle dark mode">◐ Theme</button>
+  </header>
+  <div class="who">
+    <span class="pill">Used by: <b>campaign manager</b> &amp; call-center lead</span>
+    <span class="pill">Decision: <b>call budget + call list</b></span>
+    <span class="pill">Customer list: <b>1,000 customers</b> (held-out test set)</span>
+  </div>
+
+  <div class="err" id="err"></div>
+
+  <!-- 1. Budget -->
+  <section class="card" aria-labelledby="h-budget">
+    <h2 id="h-budget"><span class="step">1</span>How many calls can you make?</h2>
+    <p class="sub">Move the slider to your call budget. The numbers update instantly.</p>
+    <div class="budget">
+      <input type="range" id="budget" min="10" max="1000" step="10" value="100" aria-label="Number of calls">
+      <div class="num"><input type="number" id="budgetNum" min="1" max="1000" value="100" aria-label="Number of calls (type)"><span class="small">calls</span></div>
+      <div class="quick" role="group" aria-label="Quick budgets">
+        <button type="button" data-b="50">50</button>
+        <button type="button" data-b="100">100</button>
+        <button type="button" data-b="150">150</button>
+        <button type="button" data-b="200">200</button>
+        <button type="button" data-b="300">300</button>
+      </div>
+    </div>
+    <div class="kpis">
+      <div class="kpi hero"><div class="label">Expected to accept</div><div class="val" id="kExp">–</div><div class="note">sum of the model's probabilities</div></div>
+      <div class="kpi"><div class="label">Actually accepted last time</div><div class="val" id="kAct">–</div><div class="note" id="kActNote">back-test on this list</div></div>
+      <div class="kpi"><div class="label">Calling at random</div><div class="val" id="kRand">–</div><div class="note">at the 10.5% base rate</div></div>
+      <div class="kpi"><div class="label">Success rate per call</div><div class="val" id="kRate">–</div><div class="note" id="kLift">vs 10.5% at random</div></div>
+    </div>
+    <div class="advice" id="advice">–</div>
+  </section>
+
+  <!-- 2. Chart -->
+  <section class="card" aria-labelledby="h-chart">
+    <h2 id="h-chart"><span class="step">2</span>What each extra call buys you</h2>
+    <p class="sub">Customers who accepted (last campaign) vs. number of calls, calling in the model's order. The curve flattens once the likely buyers are used up — that is where extra calls stop paying off.</p>
+    <div class="legend">
+      <span><i style="border-color:var(--accent)"></i>Call in model order</span>
+      <span><i style="border-color:var(--ref);border-top-style:dashed"></i>Call at random</span>
+    </div>
+    <div class="chart-wrap" id="chartWrap">
+      <svg class="chart" id="chart" viewBox="0 0 900 320" role="img" aria-label="Cumulative accepted customers by number of calls"></svg>
+      <div class="tip" id="tip"></div>
+    </div>
+  </section>
+
+  <!-- 3. Call list -->
+  <section class="card" aria-labelledby="h-list">
+    <h2 id="h-list"><span class="step">3</span>Your call list</h2>
+    <p class="sub">Ranked by probability of accepting. Customers above the dashed line are inside your budget. Download the list and hand it to the call center.</p>
+    <div class="toolbar">
+      <div role="group" aria-label="Show">
+        <button type="button" id="showIn" aria-pressed="true">In budget</button>
+        <button type="button" id="showAll" aria-pressed="false">All 1,000</button>
+      </div>
+      <input type="search" id="search" placeholder="Find customer ID…" aria-label="Find customer ID">
+      <span class="grow"></span>
+      <label class="small"><input type="checkbox" id="showOutcome" checked> show last-campaign outcome</label>
+      <button type="button" class="primary" id="dl">⬇ Download call list (CSV)</button>
+    </div>
+    <div class="tablebox">
+      <table>
+        <thead><tr>
+          <th class="r">Rank</th><th>Customer ID</th><th>Probability</th><th>Priority</th>
+          <th class="r">Income (k$)</th><th>Education</th><th class="r hide-sm">CC spend (k$/mo)</th><th class="r hide-sm">Family</th><th class="hide-sm">CD acct.</th><th class="oc">Accepted last time?</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <p class="small" id="listNote" style="margin:8px 0 0"></p>
+  </section>
+
+  <!-- 4. Single customer -->
+  <section class="card" aria-labelledby="h-one">
+    <h2 id="h-one"><span class="step">4</span>Should we call this customer?</h2>
+    <p class="sub">Type in one customer's details (e.g. a new customer, or one a branch asks about). The probability is computed in your browser by the same network.</p>
+    <div class="formgrid">
+      <form id="form" autocomplete="off" onsubmit="return false">
+        <div class="presets">
+          <span class="small" style="align-self:center">Try:</span>
+          <button type="button" data-p="hg">High income, graduate</button>
+          <button type="button" data-p="hu">High income, undergrad</button>
+          <button type="button" data-p="avg">Average customer</button>
+        </div>
+        <div class="fields">
+          <div class="field"><label for="f-Age">Age</label><input type="number" id="f-Age" min="18" max="100" value="45"></div>
+          <div class="field"><label for="f-Income">Annual income <span class="hint">k$</span></label><input type="number" id="f-Income" min="0" step="1" value="120"></div>
+          <div class="field"><label for="f-Family">Family size</label><select id="f-Family"><option>1</option><option>2</option><option selected>3</option><option>4</option></select></div>
+          <div class="field"><label for="f-CCAvg">Credit-card spend <span class="hint">k$/month</span></label><input type="number" id="f-CCAvg" min="0" step="0.1" value="3.5"></div>
+          <div class="field"><label for="f-Education">Education</label><select id="f-Education"><option value="1">Undergrad</option><option value="2" selected>Graduate</option><option value="3">Advanced / Professional</option></select></div>
+          <div class="field"><label for="f-Mortgage">Mortgage <span class="hint">k$</span></label><input type="number" id="f-Mortgage" min="0" step="1" value="0"></div>
+          <div class="toggles">
+            <label class="toggle"><input type="checkbox" id="f-Securities Account">Securities account</label>
+            <label class="toggle"><input type="checkbox" id="f-CD Account">CD account</label>
+            <label class="toggle"><input type="checkbox" id="f-Online" checked>Uses online banking</label>
+            <label class="toggle"><input type="checkbox" id="f-CreditCard">Bank's credit card</label>
+          </div>
+        </div>
+      </form>
+      <div class="result" aria-live="polite">
+        <div class="small">Probability of accepting a loan offer</div>
+        <div class="prob" id="oProb">–</div>
+        <div class="meter"><span id="oMeter" style="width:0"></span></div>
+        <div class="verdict" id="oVerdict"></div>
+        <div class="small" id="oRank"></div>
+        <ul class="why" id="oWhy"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Check -->
+  <section class="card" aria-labelledby="h-check">
+    <h2 id="h-check">Consistency check: does this page match the notebook?</h2>
+    <p class="sub">On load, the page recomputes all 1,000 customers from <code>model_nn.json</code> and compares with <code>p_nn_reference</code> exported from Python. It must agree to within 0.00001.</p>
+    <div class="check">
+      <span class="badge wait" id="cBadge">Running…</span>
+      <div class="small" id="cText"></div>
+    </div>
+    <div class="checkgrid">
+      <div>Customers checked<b id="c1">–</b></div>
+      <div>Largest difference<b id="c2">–</b></div>
+      <div>Mean difference<b id="c3">–</b></div>
+      <div>Accepted in top 100 calls<b id="c4">–</b></div>
+    </div>
+  </section>
+
+  <footer>
+    Model: neural network (10 inputs → 12 → 12 ReLU → 1 sigmoid), trained in MIS3011 Assignment 1 on 3,000 customers; tuned on 1,000; the list above is the 1,000-customer test set it never saw in training.
+    "Accepted last time" is the real outcome from the previous campaign and is shown only to back-test the ranking. Probabilities are estimates — use them to order calls, not as guarantees.
+  </footer>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const EDU = {1:'Undergrad',2:'Graduate',3:'Advanced'};
+const FIELDS = ['Age','Income','Family','CCAvg','Education','Mortgage','Securities Account','CD Account','Online','CreditCard'];
+let MODEL = null, CUST = [], RANKED = [], BASE = 0, budget = 100, showAll = false;
+
+/* ---------- theme ---------- */
+$('themeBtn').addEventListener('click', () => {
+  const root = document.documentElement;
+  const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  root.dataset.theme = dark ? 'light' : 'dark';
+  try { localStorage.setItem('theme', root.dataset.theme); } catch(e){}
+  drawChart();
+});
+try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch(e){}
+
+/* ---------- the network, exactly as "how_to_predict" says ---------- */
+const act = { relu: z => Math.max(0, z), sigmoid: z => 1 / (1 + Math.exp(-z)), linear: z => z };
+function predict(row){
+  // 1. build the 10 inputs in the order of 'inputs'; 2. scale the 6 listed in 'scaling'
+  let a = MODEL.inputs.map(name => {
+    const x = Number(row[name]);
+    const s = MODEL.scaling[name];
+    return s ? (x - s.mean) / s.std : x;
+  });
+  // 3. each layer: a = activation(a x weights + bias), weights shape [inputs][neurons]
+  for (const L of MODEL.layers){
+    const f = act[L.activation];
+    if (!f) throw new Error('Unknown activation: ' + L.activation);
+    const out = new Array(L.bias.length);
+    for (let j = 0; j < L.bias.length; j++){
+      let z = L.bias[j];
+      for (let i = 0; i < a.length; i++) z += a[i] * L.weights[i][j];
+      out[j] = f(z);
+    }
+    a = out;
+  }
+  return a[0];
+}
+
+/* ---------- data ---------- */
+function parseCSV(text){
+  const lines = text.trim().split(/\r?\n/);
+  const head = lines[0].split(',');
+  return lines.slice(1).map(l => {
+    const v = l.split(','), o = {};
+    head.forEach((h,i) => o[h] = Number(v[i]));
+    return o;
+  });
+}
+
+async function load(){
+  try{
+    const [m, c] = await Promise.all([
+      fetch('model_nn.json').then(r => { if(!r.ok) throw new Error('model_nn.json: HTTP '+r.status); return r.json(); }),
+      fetch('customers_test.csv').then(r => { if(!r.ok) throw new Error('customers_test.csv: HTTP '+r.status); return r.text(); })
+    ]);
+    MODEL = m; CUST = parseCSV(c);
+  }catch(e){
+    const el = $('err'); el.style.display='block';
+    el.textContent = 'Could not load the model or the customer list (' + e.message + '). Open this page from its web address, not as a local file.';
+    $('cBadge').className='badge fail'; $('cBadge').textContent='Not run';
+    return;
+  }
+  CUST.forEach(r => { r.p = predict(r); });
+  RANKED = CUST.slice().sort((a,b) => b.p - a.p);
+  RANKED.forEach((r,i) => r.rank = i+1);
+  BASE = CUST.reduce((s,r)=>s+r.accepted_loan,0) / CUST.length;
+  runCheck();
+  setBudget(100);
+  scoreForm();
+}
+
+/* ---------- consistency check ---------- */
+function runCheck(){
+  let maxD = 0, sumD = 0, worst = null;
+  CUST.forEach(r => { const d = Math.abs(r.p - r.p_nn_reference); sumD += d; if (d > maxD){ maxD = d; worst = r.ID; } });
+  const top100 = RANKED.slice(0,100).reduce((s,r)=>s+r.accepted_loan,0);
+  const ok = maxD < 1e-5 && CUST.length === 1000;
+  $('cBadge').className = 'badge ' + (ok ? 'pass' : 'fail');
+  $('cBadge').textContent = ok ? '✓ PASS' : '✗ FAIL';
+  $('cText').textContent = ok
+    ? `All ${CUST.length.toLocaleString()} probabilities computed in this browser match the Python reference. Largest difference ${maxD.toExponential(2)} < 0.00001.`
+    : `Largest difference ${maxD.toExponential(2)} (customer ID ${worst}) is not below 0.00001.`;
+  $('c1').textContent = CUST.length.toLocaleString();
+  $('c2').textContent = maxD.toExponential(2);
+  $('c3').textContent = (sumD/CUST.length).toExponential(2);
+  $('c4').textContent = top100 + ' of 100';
+}
+
+/* ---------- budget ---------- */
+function tier(p){ return p >= 0.5 ? ['High','t-high'] : p >= 0.1 ? ['Medium','t-med'] : ['Low','t-low']; }
+const pct = (x,d=0) => (100*x).toFixed(d) + '%';
+
+function setBudget(n){
+  n = Math.max(1, Math.min(1000, Math.round(n)||1));
+  budget = n;
+  $('budget').value = n; $('budgetNum').value = n;
+  document.querySelectorAll('.quick button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.b === n)));
+  const top = RANKED.slice(0, n);
+  const exp = top.reduce((s,r)=>s+r.p,0);
+  const actual = top.reduce((s,r)=>s+r.accepted_loan,0);
+  const totalAcc = CUST.reduce((s,r)=>s+r.accepted_loan,0);
+  const rand = n * BASE;
+  $('kExp').textContent = exp.toFixed(0);
+  $('kAct').textContent = actual;
+  $('kActNote').textContent = `of ${totalAcc} buyers in the list (${pct(actual/totalAcc)})`;
+  $('kRand').textContent = rand.toFixed(0);
+  $('kRate').textContent = pct(actual/n);
+  $('kLift').textContent = `${(actual/n/BASE).toFixed(1)}× the 10.5% random rate`;
+
+  // marginal advice: what do the next 50 calls bring?
+  const next = RANKED.slice(n, n+50);
+  const nextExp = next.reduce((s,r)=>s+r.p,0);
+  const lastP = top.length ? top[top.length-1].p : 0;
+  const nHigh = RANKED.filter(r => r.p >= 0.5).length;
+  let msg = `With <b>${n} calls</b> the model expects about <b>${exp.toFixed(0)} customers to accept</b> — ${(exp/Math.max(rand,0.01)).toFixed(1)}× what random calls would bring. `;
+  msg += `The last customer on your list has a <b>${pct(lastP,1)}</b> chance. `;
+  if (next.length) msg += `The next 50 calls would add only about <b>${nextExp.toFixed(1)}</b> acceptances. `;
+  msg += n < nHigh ? `<br>${nHigh} customers have a probability above 50%: consider raising the budget to ${nHigh}.`
+                   : `<br>All ${nHigh} high-priority customers (above 50%) are already on your list.`;
+  $('advice').innerHTML = msg;
+  renderTable(); drawChart();
+}
+$('budget').addEventListener('input', e => setBudget(+e.target.value));
+$('budgetNum').addEventListener('change', e => setBudget(+e.target.value));
+document.querySelectorAll('.quick button').forEach(b => b.addEventListener('click', () => setBudget(+b.dataset.b)));
+
+/* ---------- table ---------- */
+function renderTable(){
+  const q = $('search').value.trim();
+  const outcome = $('showOutcome').checked;
+  document.querySelectorAll('.oc').forEach(e => e.style.display = outcome ? '' : 'none');
+  let rows = q ? RANKED.filter(r => String(r.ID).includes(q)) : (showAll ? RANKED : RANKED.slice(0, budget));
+  const html = rows.map(r => {
+    const [t, cls] = tier(r.p);
+    const inB = r.rank <= budget;
+    const cut = showAll && !q && r.rank === budget + 1;
+    return `<tr class="${inB?'':'out'} ${cut?'cut':''}">
+      <td class="r">${r.rank}</td><td>${r.ID}</td>
+      <td><span class="bar" style="width:${Math.max(2, r.p*70).toFixed(0)}px"></span>${pct(r.p,1)}</td>
+      <td><span class="tag ${cls}">${t}</span></td>
+      <td class="r">${r.Income}</td><td>${EDU[r.Education]}</td>
+      <td class="r hide-sm">${r.CCAvg.toFixed(1)}</td><td class="r hide-sm">${r.Family}</td>
+      <td class="hide-sm">${r['CD Account'] ? 'Yes' : '–'}</td>
+      <td class="oc" style="${outcome?'':'display:none'}">${r.accepted_loan ? '<span class="yes">✓ Accepted</span>' : '<span class="small">No</span>'}</td></tr>`;
+  }).join('');
+  $('tbody').innerHTML = html || '<tr><td colspan="10" class="small">No customer with that ID in the list.</td></tr>';
+  $('listNote').textContent = q ? `${rows.length} match(es). Rank shows position in the full list of 1,000.`
+    : showAll ? `Showing all 1,000 customers; grey rows are outside your ${budget}-call budget.`
+    : `Showing the ${budget} customers inside your budget.`;
+}
+$('showIn').addEventListener('click', () => { showAll=false; $('showIn').setAttribute('aria-pressed','true'); $('showAll').setAttribute('aria-pressed','false'); renderTable(); });
+$('showAll').addEventListener('click', () => { showAll=true; $('showAll').setAttribute('aria-pressed','true'); $('showIn').setAttribute('aria-pressed','false'); renderTable(); });
+$('search').addEventListener('input', renderTable);
+$('showOutcome').addEventListener('change', renderTable);
+
+$('dl').addEventListener('click', () => {
+  const head = ['rank','customer_id','probability','priority','income_k','education','ccavg_k','family','cd_account'];
+  const lines = [head.join(',')].concat(RANKED.slice(0,budget).map(r =>
+    [r.rank, r.ID, r.p.toFixed(4), tier(r.p)[0], r.Income, EDU[r.Education], r.CCAvg, r.Family, r['CD Account']].join(',')));
+  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = `call_list_top${budget}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+
+/* ---------- chart ---------- */
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+let CUM = null;
+function drawChart(){
+  if (!RANKED.length) return;
+  const svg = $('chart');
+  const W = Math.max(320, Math.round($('chartWrap').clientWidth) || 900), H = W < 600 ? 260 : 320, m = {l:46, r:16, t:12, b:40};
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const xStep = W < 600 ? 250 : 100;
+  const iw = W-m.l-m.r, ih = H-m.t-m.b;
+  const N = RANKED.length, total = CUST.reduce((s,r)=>s+r.accepted_loan,0);
+  if (!CUM){ CUM=[0]; RANKED.forEach((r,i)=>CUM.push(CUM[i]+r.accepted_loan)); }
+  const x = n => m.l + n/N*iw, y = v => m.t + ih - v/(Math.ceil(total/20)*20)*ih;
+  const yMax = Math.ceil(total/20)*20;
+  let g = '';
+  for (let v=0; v<=yMax; v+=20){ g += `<line x1="${m.l}" x2="${W-m.r}" y1="${y(v)}" y2="${y(v)}" stroke="${css('--line')}" stroke-width="1"/><text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="12" fill="${css('--muted')}">${v}</text>`; }
+  for (let n=0; n<=N; n+=xStep){ g += `<text x="${x(n)}" y="${H-m.b+18}" text-anchor="middle" font-size="12" fill="${css('--muted')}">${n}</text>`; }
+  g += `<text x="${m.l+iw/2}" y="${H-4}" text-anchor="middle" font-size="12" fill="${css('--text-2')}">Number of calls</text>`;
+  g += `<text transform="translate(12 ${m.t+ih/2}) rotate(-90)" text-anchor="middle" font-size="12" fill="${css('--text-2')}">Accepted</text>`;
+  // budget shading
+  g += `<rect x="${m.l}" y="${m.t}" width="${x(budget)-m.l}" height="${ih}" fill="${css('--accent-soft')}" opacity=".7"/>`;
+  // random
+  g += `<line x1="${x(0)}" y1="${y(0)}" x2="${x(N)}" y2="${y(total)}" stroke="${css('--ref')}" stroke-width="2" stroke-dasharray="5 5"/>`;
+  // model curve
+  let d = ''; for (let n=0; n<=N; n+=5) d += (n?'L':'M') + x(n).toFixed(1)+','+y(CUM[n]).toFixed(1);
+  g += `<path d="${d}" fill="none" stroke="${css('--accent')}" stroke-width="2.5" stroke-linejoin="round"/>`;
+  // budget marker
+  const bx = x(budget), by = y(CUM[budget]);
+  g += `<line x1="${bx}" x2="${bx}" y1="${m.t}" y2="${y(0)}" stroke="${css('--accent')}" stroke-width="1.5"/>`;
+  g += `<circle cx="${bx}" cy="${by}" r="5.5" fill="${css('--accent')}" stroke="${css('--surface')}" stroke-width="2"/>`;
+  const lx = bx > W-190 ? bx-10 : bx+10, anchor = bx > W-190 ? 'end' : 'start';
+  g += `<text x="${lx}" y="${Math.min(by+26, y(0)-8)}" text-anchor="${anchor}" font-size="13" font-weight="600" fill="${css('--text')}">${budget} calls → ${CUM[budget]} accepted</text>`;
+  // hover layer
+  g += `<line id="hx" x1="0" x2="0" y1="${m.t}" y2="${y(0)}" stroke="${css('--text-2')}" stroke-width="1" opacity="0"/>`;
+  g += `<circle id="hd" r="4.5" fill="${css('--accent')}" stroke="${css('--surface')}" stroke-width="2" opacity="0"/>`;
+  g += `<rect id="hit" x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent" style="cursor:crosshair"/>`;
+  svg.innerHTML = g;
+  const tip = $('tip'), hit = svg.querySelector('#hit');
+  const toN = ev => { const r = svg.getBoundingClientRect(); const px = (ev.clientX - r.left) * W / r.width; return Math.max(1, Math.min(N, Math.round((px-m.l)/iw*N))); };
+  hit.addEventListener('mousemove', ev => {
+    const n = toN(ev), r = svg.getBoundingClientRect(), sc = r.width / W;
+    svg.querySelector('#hx').setAttribute('x1', x(n)); svg.querySelector('#hx').setAttribute('x2', x(n)); svg.querySelector('#hx').setAttribute('opacity', .5);
+    const hd = svg.querySelector('#hd'); hd.setAttribute('cx', x(n)); hd.setAttribute('cy', y(CUM[n])); hd.setAttribute('opacity', 1);
+    tip.innerHTML = `<b>${n}</b> calls<br>Model order: <b>${CUM[n]}</b> accepted (${pct(CUM[n]/n)} per call)<br>Random: <b>${(n*BASE).toFixed(0)}</b> accepted`;
+    const left = x(n)*sc; tip.style.left = (left > r.width*0.6 ? left - tip.offsetWidth - 12 : left + 12) + 'px';
+    tip.style.top = (y(CUM[n])*sc - 10) + 'px'; tip.style.opacity = 1;
+  });
+  hit.addEventListener('mouseleave', () => { tip.style.opacity = 0; svg.querySelector('#hx').setAttribute('opacity',0); svg.querySelector('#hd').setAttribute('opacity',0); });
+  hit.addEventListener('click', ev => setBudget(toN(ev)));
+}
+let _rz; window.addEventListener('resize', () => { $('tip').style.opacity = 0; clearTimeout(_rz); _rz = setTimeout(drawChart, 120); });
+
+/* ---------- single customer ---------- */
+const PRESETS = {
+  hg:  {Age:40, Income:150, Family:3, CCAvg:4.5, Education:2, Mortgage:0, 'Securities Account':0, 'CD Account':0, Online:1, CreditCard:0},
+  hu:  {Age:40, Income:150, Family:1, CCAvg:4.5, Education:1, Mortgage:0, 'Securities Account':0, 'CD Account':0, Online:1, CreditCard:0},
+  avg: {Age:45, Income:64, Family:2, CCAvg:1.5, Education:2, Mortgage:0, 'Securities Account':0, 'CD Account':0, Online:1, CreditCard:0},
+};
+function readForm(){
+  const o = {};
+  FIELDS.forEach(f => { const el = $('f-'+f); o[f] = el.type === 'checkbox' ? (el.checked?1:0) : Number(el.value); });
+  return o;
+}
+function writeForm(o){ FIELDS.forEach(f => { const el = $('f-'+f); if (el.type==='checkbox') el.checked = !!o[f]; else el.value = o[f]; }); }
+function scoreForm(){
+  if (!MODEL) return;
+  const row = readForm();
+  for (const f of ['Age','Income','CCAvg','Mortgage']) if (!isFinite(row[f]) || row[f] < 0){ $('oProb').textContent='–'; $('oVerdict').textContent='Please enter a valid '+f+'.'; return; }
+  const p = predict(row);
+  const rank = RANKED.filter(r => r.p > p).length + 1;
+  const [t] = tier(p);
+  $('oProb').textContent = pct(p,1);
+  $('oMeter').style.width = (p*100).toFixed(1)+'%';
+  const call = rank <= budget;
+  const col = call ? 'var(--good)' : (p >= 0.1 ? 'var(--warn)' : 'var(--muted)');
+  $('oVerdict').innerHTML = `<span class="dot" style="background:${col}"></span>${call ? 'Call — inside your ' + budget + '-call list' : (p>=0.1 ? 'Maybe — only if the budget grows' : 'Don’t call')}`;
+  $('oRank').textContent = `Would rank #${rank} of 1,001 · ${t} priority · ${p/BASE < 0.1 ? 'far below' : (p/BASE).toFixed(1) + '×'} the average customer (10.5%).`;
+  // what-if: change one thing at a time
+  const tries = [];
+  const alt = (lbl, ch) => { const r = Object.assign({}, row, ch); const q = predict(r); tries.push([lbl, q - p, q]); };
+  if (row.Education === 1) alt('with a graduate degree', {Education:2}); else alt('if undergrad only', {Education:1});
+  alt('with income +30k$', {Income: row.Income + 30});
+  if (row.Income > 30) alt('with income −30k$', {Income: Math.max(0,row.Income - 30)});
+  alt(row['CD Account'] ? 'without a CD account' : 'with a CD account', {'CD Account': row['CD Account']?0:1});
+  alt('with family size ' + (row.Family >= 3 ? 1 : 4), {Family: row.Family >= 3 ? 1 : 4});
+  tries.sort((a,b) => Math.abs(b[1]) - Math.abs(a[1]));
+  $('oWhy').innerHTML = '<li style="list-style:none;margin-left:-18px" class="small">What would change it most:</li>' +
+    tries.slice(0,3).map(([l,d,q]) => `<li>${l}: <b>${pct(q,1)}</b> (${d>=0?'+':'−'}${(Math.abs(d)*100).toFixed(1)} pts)</li>`).join('');
+}
+$('form').addEventListener('input', scoreForm);
+$('form').addEventListener('change', scoreForm);
+document.querySelectorAll('[data-p]').forEach(b => b.addEventListener('click', () => { writeForm(PRESETS[b.dataset.p]); scoreForm(); }));
+// keep the verdict in sync with the budget
+const _sb = setBudget; setBudget = function(n){ _sb(n); scoreForm(); };
+
+load();
+})();
+</script>
+</body>
+</html>
